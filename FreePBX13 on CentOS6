@@ -1,0 +1,226 @@
+Installing FreePBX 13 on CentOS 6
+Aller directement à la fin des métadonnées
+Créée par Tom Ray, dernière modification par Andrew Nagy le août 29, 2017 Aller au début des métadonnées
+READ FIRST
+Manual installations of FreePBX is considered an EXPERTS ONLY exercise. This method of installation is enough to get CORE functionality of FreePBX. Non-commercial modules may not function as expected or detailed in the Wiki's. Certain modules and features may require additional software to be installed and configured on the server.
+**** COMMERCIAL MODULES ****
+While commercial modules can be installed on CentOS 6, THERE IS NO GUARANTEE THEY WILL FUNCTION AS EXPECTED OR AT ALL. If you are looking to use commercial modules it is highly recommended to use the FreePBX Distro.
+Install CentOS 6
+**** COMMERCIAL MODULES ****
+Install CentOS 6
+Initial System Setup
+Disable selinux
+Update Your System
+Install Additional Required Dependencies
+IPTables 
+Auto Start MySQL
+Auto Start Apache
+Install PearDB
+Reboot server
+Install Dependencies for Google Voice (If needed/wanted)
+Install iksemel
+Add the Asterisk User
+Install and Configure Asterisk
+Download Asterisk source files.
+Compile and install DAHDI and LibPRI
+Compile and install pjproject
+Compile and Install jansson
+Compile and install SpanDSP
+Compile and install Asterisk
+Install Asterisk-Extra-Sounds
+Set ownership permissions
+A few small modifications to Apache.
+Install and Configure FreePBX
+Download and extract FreePBX.
+That's it!
+Install and Setup Commercial Modules
+yum clean all to clean out yum cache so it will find out new RPMs
+yum install needed RPMs for Commercial Modules
+Restart Apache and Install Sysadmin
+For Further information see: Installation on CentOS and RHEL based systems
+Initial System Setup
+You MUST run all of these commands as the root user!
+You MUST disable selinux.  selinux can cause strange behavior during the install
+Disable selinux
+In /etc/sysconfig/selinux , change the following lines:
+sed -i 's/\(^SELINUX=\).*/\SELINUX=disabled/' /etc/sysconfig/selinux
+reboot, and verify the selinux status by running 'sestatus'. It should say:
+SELinux status: disabled
+SELinux did not disable!
+Generally /etc/sysconfig/selinux is linked to /etc/selinux/config but in some cases they are separate files. If the above steps do not disable selinux you will need to perform one extra step:
+sed -i 's/\(^SELINUX=\).*/\SELINUX=disabled/' /etc/selinux/config
+Update Your System
+yum -y update
+yum -y groupinstall core base "Development Tools"
+Install Additional Required Dependencies
+yum install gcc gcc-c++ lynx bison mysql-devel mysql-server php php-mysql php-pear php-mbstring php-xml tftp-server httpd make ncurses-devel libtermcap-devel sendmail sendmail-cf caching-nameserver sox newt-devel libxml2-devel libtiff-devel audiofile-devel gtk2-devel subversion kernel-devel git subversion kernel-devel php-process crontabs cronie cronie-anacron wget vim php-xml uuid-devel libtool sqlite-devel unixODBC mysql-connector-odbc libuuid-devel binutils-devel php-ldap
+IPTables 
+Keeping IPTables turned off indefinitely is strongly discouraged. You will incur the wrath of high fees and hackers
+You must disable the default iptables.  You can re-enable it later, once you have made the appropriate changes.  Information on iptables can be found with a quick Google search.  If iptables is left running, it will (at very least) block you from accessing the web interface.
+ 
+See the current status:   
+chkconfig iptables --list
+Disable iptables:
+chkconfig --level 0123456 iptables off
+Stop the service (this skips rebooting again):
+service iptables stop
+Auto Start MySQL
+You must have mysql running for freepbx to operate normally.  You need to set it to start at boot time. with the following command:
+chkconfig --level 345 mysqld on
+Then start mysqld if you don't plan on rebooting during the installation phase:
+service mysqld start
+Auto Start Apache
+You will want Apache running, so you can access the FreePBX admin interface,  You need to set it to start at boot time. with the following command:
+chkconfig --level 345 httpd on
+Then start apache if you don't plan on rebooting during the installation phase:
+service httpd start
+Install PearDB
+pear channel-update pear.php.net
+pear install db-1.7.14
+You may receive a warning:
+WARNING: "pear/DB" is deprecated in favor of "pear/MDB2"
+At this time it is safe to ignore that message
+Reboot server
+reboot
+Install Dependencies for Google Voice (If needed/wanted)
+Install iksemel
+cd /usr/src
+wget https://iksemel.googlecode.com/files/iksemel-1.4.tar.gz
+tar xf iksemel-*.tar.gz
+cd iksemel-*
+./configure
+make
+make install
+Add the Asterisk User
+adduser asterisk -m -c "Asterisk User"
+Install and Configure Asterisk
+Download Asterisk source files.
+cd /usr/src
+wget http://downloads.asterisk.org/pub/telephony/dahdi-linux-complete/dahdi-linux-complete-current.tar.gz
+wget http://downloads.asterisk.org/pub/telephony/libpri/libpri-current.tar.gz
+wget http://soft-switch.org/downloads/spandsp/spandsp-0.0.6.tar.gz
+wget http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-13-current.tar.gz
+wget -O jansson.tar.gz https://github.com/akheron/jansson/archive/v2.7.tar.gz
+wget http://www.pjsip.org/release/2.4/pjproject-2.4.tar.bz2
+Compile and install DAHDI and LibPRI
+If you don't have any physical hardware you don't need to run these commands, however, it is still suggested to compile the modules, to allow you to add hardware later.
+cd /usr/src
+tar xvfz dahdi-linux-complete-current.tar.gz
+tar xvfz libpri-current.tar.gz
+rm -f dahdi-linux-complete-current.tar.gz libpri-current.tar.gz
+cd dahdi-linux-complete-*
+make all
+make install
+make config
+cd /usr/src/libpri-*
+make
+make install
+Compile and install pjproject
+If you are doing this on a 32 bit system, please note that you MUST set the following during configure:
+--libdir=/usr/lib
+cd /usr/src
+tar -xjvf pjproject-2.4.tar.bz2
+rm -f pjproject-2.4.tar.bz2
+cd pjproject-2.4
+CFLAGS='-DPJ_HAS_IPV6=1' ./configure --prefix=/usr --enable-shared --disable-sound \
+--disable-resample --disable-video --disable-opencore-amr --libdir=/usr/lib64
+make dep
+make
+make install
+Compile and Install jansson
+If you are doing this on a 32 bit system, please note that you MUST set the following during configure:
+--libdir=/usr/lib
+cd /usr/src
+tar vxfz jansson.tar.gz
+rm -f jansson.tar.gz
+cd jansson-*
+autoreconf -i
+./configure --libdir=/usr/lib64
+make
+make install
+Compile and install SpanDSP
+If you are doing this on a 32 bit system, please note that you MUST set the following during configure:
+--libdir=/usr/lib
+
+SpanDSP
+cd /usr/src
+tar -xzf spandsp-0.0.6.tar.gz
+cd spandsp-0.0.6
+./configure --libdir=/usr/lib64
+make
+make install
+Compile and install Asterisk
+If you are doing this on a 32 bit system, please note that you MUST set the following during configure:
+--libdir=/usr/lib
+cd /usr/src
+tar xvfz asterisk-13-current.tar.gz
+rm -f asterisk-13-current.tar.gz
+cd asterisk-*
+contrib/scripts/install_prereq install
+./configure --libdir=/usr/lib64
+contrib/scripts/get_mp3_source.sh
+make menuselect
+You will be prompted at the point to pick which modules to build. Most of them will be enabled, but if you want to have MP3 support, you need to manually turn on 'format_mp3' on the first page.
+
+After selecting 'Save & Exit' you can then continue
+make
+make install
+make config
+ldconfig
+Install Asterisk-Extra-Sounds
+Note that this installs the (8khz) 'wav' soundfiles and G722 (High Definition 'Wideband') audio.
+mkdir -p /var/lib/asterisk/sounds
+cd /var/lib/asterisk/sounds
+wget http://downloads.asterisk.org/pub/telephony/sounds/asterisk-core-sounds-en-wav-current.tar.gz
+wget http://downloads.asterisk.org/pub/telephony/sounds/asterisk-extra-sounds-en-wav-current.tar.gz
+tar xvf asterisk-core-sounds-en-wav-current.tar.gz
+rm -f asterisk-core-sounds-en-wav-current.tar.gz
+tar xfz asterisk-extra-sounds-en-wav-current.tar.gz
+rm -f asterisk-extra-sounds-en-wav-current.tar.gz
+# Wideband Audio download
+wget http://downloads.asterisk.org/pub/telephony/sounds/asterisk-core-sounds-en-g722-current.tar.gz
+wget http://downloads.asterisk.org/pub/telephony/sounds/asterisk-extra-sounds-en-g722-current.tar.gz
+tar xfz asterisk-core-sounds-en-g722-current.tar.gz
+rm -f asterisk-core-sounds-en-g722-current.tar.gz
+tar xfz asterisk-extra-sounds-en-g722-current.tar.gz
+rm -f asterisk-extra-sounds-en-g722-current.tar.gz
+Set ownership permissions
+If you are doing this on a 32 bit system, please note that you MUST set the following during configure:
+chown -R asterisk. /usr/lib/asterisk
+chown asterisk. /var/run/asterisk
+chown -R asterisk. /etc/asterisk
+chown -R asterisk. /var/{lib,log,spool}/asterisk
+chown -R asterisk. /usr/lib64/asterisk
+chown -R asterisk. /var/www/
+A few small modifications to Apache.
+sed -i 's/\(^upload_max_filesize = \).*/\120M/' /etc/php.ini
+sed -i 's/^\(User\|Group\).*/\1 asterisk/' /etc/httpd/conf/httpd.conf
+sed -i 's/AllowOverride None/AllowOverride All/' /etc/httpd/conf/httpd.conf
+service httpd restart
+Install and Configure FreePBX
+Download and extract FreePBX.
+cd /usr/src
+wget http://mirror.freepbx.org/modules/packages/freepbx/freepbx-13.0-latest.tgz
+tar xfz freepbx-13.0-latest.tgz
+rm -f freepbx-13.0-latest.tgz
+cd freepbx
+./start_asterisk start
+./install -n
+That's it!
+You can now start using FreePBX.  Open up your web browser and connect to the IP address or hostname of your new FreePBX server.  You will see the Admin setup page, which is where you set your  'admin' account password, and configure an email address to receive update notifications. 
+We hope you enjoy using FreePBX 13!
+Install and Setup Commercial Modules
+[Optional] Additional Installation Steps
+If you wish to use Commercial Modules you will need to perform the additional steps below. 
+Enable the FreePBX Commercial yum repos
+wget -P /etc/yum.repos.d/ -N http://yum.schmoozecom.net/schmooze-commercial/schmooze-commercial.repo
+yum clean all to clean out yum cache so it will find out new RPMs
+yum clean all
+yum install needed RPMs for Commercial Modules
+yum -y install php-5.3-zend-guard-loader sysadmin fail2ban incron ImageMagick
+Ensure you have the right mirrors to download and obtain commercial modules
+/var/lib/asterisk/bin/freepbx_setting MODULE_REPO http://mirror1.freepbx.org,http://mirror2.freepbx.org
+Restart Apache and Install Sysadmin
+service httpd restart
+fwconsole ma download sysadmin
+fwconsole ma install sysadmin
